@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Who's the Imposter?</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --success-color: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            height: 100dvh;
+            position: relative;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 24px;
+            text-align: center;
+            animation: fadeIn 0.3s ease-in-out;
+            overflow-y: auto;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        /* Setup Screen specifics */
+        .setup-group {
+            width: 100%;
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-count-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+
+        input[type=range] {
+            width: 100%;
+            margin: 10px 0;
+            accent-color: var(--primary-color);
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .category-btn {
+            background: #334155;
+            border: 2px solid transparent;
+            color: white;
+            padding: 12px 8px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-btn.selected {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary-color);
+            color: #818cf8;
+        }
+
+        /* Generic Buttons */
+        .btn-main {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 99px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-main:active {
+            transform: scale(0.96);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-danger:active {
+            background: var(--danger-hover);
+        }
+
+        /* View Screen Specifics */
+        .word-reveal-box {
+            background: var(--surface-color);
+            width: 100%;
+            padding: 40px 20px;
+            border-radius: var(--radius);
+            margin-bottom: 30px;
+            border: 2px dashed #475569;
+        }
+
+        .secret-word {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #f8fafc;
+            letter-spacing: 1px;
+            margin: 10px 0;
+            word-break: break-word;
+        }
+
+        .imposter-text {
+            color: var(--danger-color);
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .icon-large {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .header-top {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- SETUP SCREEN -->
+    <div id="screen-setup" class="screen active">
+        <h1>🕵️‍♂️ Imposter</h1>
+        <p>Find the liar among you!</p>
+
+        <div class="setup-group">
+            <h3>Number of Players</h3>
+            <div class="player-count-display" id="player-count">5</div>
+            <input type="range" id="player-slider" min="3" max="15" value="5">
+            <p style="margin-bottom: 0; font-size: 0.85rem;">3 to 15 players</p>
+        </div>
+
+        <div class="setup-group">
+            <h3>Select Categories</h3>
+            <div class="category-grid" id="category-container">
+                <!-- Categories injected by JS -->
+            </div>
+        </div>
+
+        <div class="setup-group">
+            <h3 style="margin-bottom: 12px; text-align: left;">Imposter Hints</h3>
+            <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; width: 100%; margin-bottom: 8px;">
+                <span>Category Hint</span>
+                <input type="checkbox" id="category-hint-toggle" style="width: 20px; height: 20px; accent-color: var(--primary-color);">
+            </label>
+            <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; width: 100%;">
+                <span>Hint Word</span>
+                <input type="checkbox" id="word-hint-toggle" style="width: 20px; height: 20px; accent-color: var(--primary-color);">
+            </label>
+            <p style="margin-bottom: 0; font-size: 0.85rem; margin-top: 8px; text-align: left;">Enable category hint, hint word, or both for the Imposter.</p>
+        </div>
+
+        <button class="btn-main" onclick="startGame()">Start Game</button>
+    </div>
+
+    <!-- PASS SCREEN -->
+    <div id="screen-pass" class="screen">
+        <div class="header-top" id="pass-progress">Player 1 / 5</div>
+        <div class="icon-large">📱</div>
+        <h2 id="pass-title">Pass to Player 1</h2>
+        <p>Make sure no one else is looking at the screen!</p>
+        <button class="btn-main" onclick="showViewScreen()">Tap to Reveal Word</button>
+    </div>
+
+    <!-- VIEW SCREEN -->
+    <div id="screen-view" class="screen">
+        <div class="header-top" id="view-progress">Player 1 / 5</div>
+        <h2 id="role-title">Your Word is:</h2>
+        
+        <div class="word-reveal-box">
+            <div id="imposter-hint-display" style="display: none; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 15px; line-height: 1.6;"></div>
+            <div class="secret-word" id="secret-word-display">Word</div>
+        </div>
+
+        <p id="role-description">Memorize your word, then tap below to hide it.</p>
+        <button class="btn-main" onclick="nextPlayer()">Hide & Pass</button>
+    </div>
+
+    <!-- DISCUSSION SCREEN -->
+    <div id="screen-discuss" class="screen">
+        <div class="icon-large">🗣️</div>
+        <h2>Time to Discuss!</h2>
+        <p>Everyone has seen their role. Take turns saying a word related to the secret word. The Imposter must try to blend in.</p>
+        <p style="color: #cbd5e1; font-weight: bold;">When you're ready to vote, reveal the Imposter!</p>
+        <button class="btn-main btn-danger" onclick="showRevealScreen()" style="margin-top: 20px;">Reveal Imposter</button>
+    </div>
+
+    <!-- REVEAL SCREEN -->
+    <div id="screen-reveal" class="screen">
+        <div class="icon-large">🚨</div>
+        <h2>The Imposter was...</h2>
+        <div class="word-reveal-box" style="border-color: var(--danger-color);">
+            <div class="secret-word imposter-text" id="reveal-imposter-name">Player X</div>
+        </div>
+        <p id="reveal-word-text">The secret word was: <strong>Word</strong></p>
+        <button class="btn-main" onclick="resetToSetup()">Play Again</button>
+    </div>
+</div>
+
+<script>
+    // Game Data
+    const database = {
+        "Animals": ["Dog","Cat","Lion","Tiger","Elephant","Giraffe","Zebra","Bear","Wolf","Fox","Rabbit","Deer","Monkey","Gorilla","Panda","Kangaroo","Koala","Horse","Cow","Pig","Goat","Sheep","Chicken","Duck","Goose","Eagle","Hawk","Owl","Parrot","Penguin","Shark","Dolphin","Whale","Octopus","Crab","Lobster","Jellyfish","Frog","Toad","Snake","Lizard","Crocodile","Alligator","Turtle","Ant","Bee","Butterfly","Spider","Scorpion","Bat","Camel","Donkey","Moose","Buffalo","Hyena","Leopard","Cheetah","Flamingo","Peacock","Swan","Seahorse","Starfish","Clownfish","Stingray","Woodpecker","Raccoon","Skunk","Hedgehog"],
+        "Brands": ["Nike","Adidas","Puma","Reebok","Under Armour","New Balance","Converse","Vans","Jordan","Champion","Apple","Samsung","Huawei","Xiaomi","Oppo","Vivo","Sony","LG","Nokia","Lenovo","Microsoft","Google","Amazon","Meta","Intel","AMD","Dell","HP","Asus","Coca-Cola","Pepsi","Sprite","Fanta","Nestle","Red Bull","Starbucks","McDonald’s","KFC","Burger King","Toyota","Honda","Nissan","Ford","BMW","Mercedes-Benz","Tesla","Hyundai","Zara","H&M","Uniqlo","Levi’s","Gucci","Prada","Chanel","Dior","Rolex"],
+        "Foods": ["Pizza","Burger","Hotdog","Fries","Spaghetti","Lasagna","Sushi","Ramen","Tempura","Fried Chicken","Steak","Bacon","Sausage","Sandwich","Salad","Soup","Rice","Bread","Pancake","Waffle","Donut","Cake","Ice Cream","Chocolate","Candy","Cookies","Brownies","Pie","Apple","Banana","Mango","Orange","Pineapple","Grapes","Watermelon","Carrot","Potato","Tomato","Onion","Garlic","Corn","Broccoli","Egg","Cheese","Milk","Yogurt","Butter","Peanut Butter","Honey","Jam"],
+        "Objects": ["Chair","Table","Bed","Sofa","Cabinet","Desk","Lamp","Mirror","Clock","Fan","Aircon","Refrigerator","Microwave","Oven","Stove","Toaster","Blender","Phone","Laptop","Tablet","Keyboard","Mouse","Monitor","Printer","Pen","Pencil","Notebook","Paper","Book","Folder","Envelope","Bag","Wallet","Keys","Umbrella","Bottle","Glass","Plate","Spoon","Fork","Knife","TV","Remote","Speaker","Headphones","Camera","Car","Bicycle","Motorcycle","Helmet","Shoes","Slippers","Jacket","Hat","Soap","Shampoo","Toothbrush","Toothpaste","Towel","Flashlight","Charger","Powerbank","Extension Cord"],
+        "Cartoon Titles": ["SpongeBob SquarePants","Tom and Jerry","Scooby-Doo","Dora the Explorer","Ben 10","Adventure Time","The Powerpuff Girls","Teen Titans","Gravity Falls","Phineas and Ferb","The Simpsons","Family Guy","Rick and Morty","Looney Tunes","Avatar: The Last Airbender"],
+        "Cartoon Characters": ["SpongeBob","Patrick Star","Squidward","Mickey Mouse","Donald Duck","Goofy","Bugs Bunny","Daffy Duck","Scooby-Doo","Shaggy","Dora","Boots","Ben Tennyson","Finn","Jake","Blossom","Bubbles","Buttercup","Raven","Robin","Gumball","Darwin","Rick Sanchez","Morty Smith","Homer Simpson"],
+        "Anime Characters": ["Naruto Uzumaki","Sasuke Uchiha","Sakura Haruno","Kakashi Hatake","Itachi Uchiha","Monkey D. Luffy","Roronoa Zoro","Nami","Sanji","Usopp","Ichigo Kurosaki","Rukia Kuchiki","Light Yagami","L","Levi Ackerman","Eren Yeager","Mikasa Ackerman","Armin Arlert","Goku","Vegeta","Gohan","Frieza","Saitama","Genos","Tanjiro Kamado","Nezuko Kamado","Zenitsu Agatsuma","Inosuke Hashibira","Edward Elric","Alphonse Elric","Killua Zoldyck","Gon Freecss","Hisoka","Kurapika","Jotaro Kujo","Dio Brando","Natsu Dragneel","Lucy Heartfilia","Erza Scarlet","Gray Fullbuster","Asta","Yuno","Rimuru Tempest"],
+        "Anime Titles": ["Naruto","One Piece","Bleach","Attack on Titan","Dragon Ball","One Punch Man","Demon Slayer","Fullmetal Alchemist","Hunter x Hunter","Death Note","My Hero Academia","Black Clover","Fairy Tail","Jujutsu Kaisen","Tokyo Ghoul","Sword Art Online","Blue Lock","Chainsaw Man","Haikyuu","Spy x Family","Code Geass","Cowboy Bebop","Steins;Gate","JoJo’s Bizarre Adventure"],
+        "NBA Players": ["LeBron James","Stephen Curry","Kevin Durant","Giannis Antetokounmpo","Luka Dončić","Nikola Jokić","Joel Embiid","Jayson Tatum","Devin Booker","Damian Lillard","Michael Jordan","Kobe Bryant","Shaquille O’Neal","Tim Duncan","Magic Johnson","Larry Bird","Wilt Chamberlain","Bill Russell","Kareem Abdul-Jabbar","Hakeem Olajuwon","Karl Malone","John Stockton","Charles Barkley","Scottie Pippen","Allen Iverson","Dirk Nowitzki","Kevin Garnett","Dwyane Wade","Steve Nash","Chris Webber","Gary Payton","Reggie Miller","Ray Allen","Paul Pierce","Dennis Rodman","Isiah Thomas","Patrick Ewing","Clyde Drexler","Elgin Baylor","Jerry West","Oscar Robertson","Moses Malone","David Robinson","Yao Ming","Tracy McGrady","Vince Carter","Jason Kidd","Steve Kerr","Manu Ginobili","Tony Parker","Robert Horry","Dominique Wilkins","George Gervin","Bob Cousy","Pete Maravich","Walt Frazier","Rick Barry","Nate Archibald","Dave Bing","Paul Arizin","Lenny Wilkens","Bob Lanier","Bill Walton","Artis Gilmore","Alex English","Bernard King","Sidney Moncrief","Adrian Dantley","Chris Mullin","James Worthy","Kevin McHale","Robert Parish","Joe Dumars","Dennis Johnson","Jack Sikma"],
+        "Locations": ["Philippines","Japan","South Korea","China","India","Thailand","Vietnam","Indonesia","Malaysia","Singapore","United States","Canada","Mexico","Brazil","Argentina","Chile","Peru","Colombia","Venezuela","Cuba","United Kingdom","France","Germany","Italy","Spain","Portugal","Netherlands","Belgium","Switzerland","Austria","Russia","Ukraine","Poland","Sweden","Norway","Denmark","Finland","Iceland","Australia","New Zealand","Fiji","Papua New Guinea","Egypt","South Africa","Nigeria","Kenya","Morocco","Ghana","Ethiopia","Saudi Arabia","UAE","Qatar","Israel","Turkey","Paris","London","New York","Los Angeles","Tokyo","Seoul","Beijing","Bangkok","Dubai","Sydney","Rome","Madrid","Berlin","Amsterdam","Toronto","Vancouver","Cebu","Davao","Manila","Baguio","Palawan","Boracay","Siargao","Mount Everest","Sahara Desert","Amazon Rainforest","Grand Canyon","Great Wall of China","Eiffel Tower","Statue of Liberty","Colosseum","Disneyland","Universal Studios","Times Square","Hollywood","Antarctica","Arctic","Pacific Ocean","Atlantic Ocean","Indian Ocean","Himalayas","Alps","Andes","Rockies","Maldives","Hawaii","Bali","Santorini","Las Vegas","San Francisco","Chicago","Miami","Seattle","Hong Kong","Macau","Taipei","Istanbul","Athens","Prague","Vienna","Doha","Riyadh","Tehran","Johannesburg","Cape Town","Lagos","Nairobi","Moscow","Kyiv","Hanoi","Phnom Penh","Yangon"]
+    };
+
+    const hintDatabase = {
+        "Animals": [
+            ["Dog", "Loyalty"], ["Cat", "Independent"], ["Lion", "Pride"], ["Tiger", "Striped"], ["Elephant", "Memory"], ["Giraffe", "Towering"], ["Zebra", "Monochrome"], ["Bear", "Hibernate"], ["Wolf", "Pack"], ["Fox", "Cunning"], ["Rabbit", "Burrow"], ["Deer", "Antlers"], ["Monkey", "Primate"], ["Gorilla", "Silverback"], ["Panda", "Bamboo"], ["Kangaroo", "Marsupial"], ["Koala", "Eucalyptus"], ["Horse", "Equine"], ["Cow", "Bovine"], ["Pig", "Porcine"], ["Goat", "Caprine"], ["Sheep", "Ovine"], ["Chicken", "Poultry"], ["Duck", "Waterfowl"], ["Goose", "Gaggle"], ["Eagle", "Raptor"], ["Hawk", "Talons"], ["Owl", "Nocturnal"], ["Parrot", "Mimic"], ["Penguin", "Antarctic"], ["Shark", "Cartilage"], ["Dolphin", "Sonar"], ["Whale", "Breach"], ["Octopus", "Cephalopod"], ["Crab", "Crustacean"], ["Lobster", "Claws"], ["Jellyfish", "Medusa"], ["Frog", "Amphibian"], ["Toad", "Wart"], ["Snake", "Serpentine"], ["Lizard", "Scale"], ["Crocodile", "Reptilian"], ["Alligator", "Everglades"], ["Turtle", "Carapace"], ["Ant", "Colony"], ["Bee", "Apiary"], ["Butterfly", "Metamorphosis"], ["Spider", "Arachnid"], ["Scorpion", "Venom"], ["Bat", "Chiroptera"], ["Camel", "Dromedary"], ["Donkey", "Burro"], ["Moose", "Alces"], ["Buffalo", "Bison"], ["Hyena", "Scavenger"], ["Leopard", "Pard"], ["Cheetah", "Velocity"], ["Flamingo", "Wading"], ["Peacock", "Plumage"], ["Swan", "Cygnet"], ["Seahorse", "Hippocampus"], ["Starfish", "Echinoderm"], ["Clownfish", "Anemone"], ["Stingray", "Barb"], ["Woodpecker", "Arboreal"], ["Raccoon", "Procyon"], ["Skunk", "Mephitidae"], ["Hedgehog", "Quills"]
+        ],
+        "Brands": [
+            ["Nike", "Victory"], ["Adidas", "Performance"], ["Puma", "Feline"], ["Reebok", "Fitness"], ["Under Armour", "Shield"], ["New Balance", "Arch"], ["Converse", "Star"], ["Vans", "Canvas"], ["Jordan", "Jumpman"], ["Champion", "Athletic"], ["Apple", "Macintosh"], ["Samsung", "Galaxy"], ["Huawei", "Telecomm"], ["Xiaomi", "Value"], ["Oppo", "Optics"], ["Vivo", "Audio"], ["Sony", "Walkman"], ["LG", "Goldstar"], ["Nokia", "Lumia"], ["Lenovo", "ThinkPad"], ["Microsoft", "Windows"], ["Google", "Alphabet"], ["Amazon", "Kindle"], ["Meta", "Horizon"], ["Intel", "Silicon"], ["AMD", "Ryzen"], ["Dell", "Alienware"], ["HP", "LaserJet"], ["Asus", "ZenBook"], ["Coca-Cola", "Classic"], ["Pepsi", "Cola"], ["Sprite", "Citrus"], ["Fanta", "Orange"], ["Nestle", "Nutrition"], ["Red Bull", "Taurine"], ["Starbucks", "Siren"], ["McDonald’s", "Arches"], ["KFC", "Colonel"], ["Burger King", "Whopper"], ["Toyota", "Corolla"], ["Honda", "VTEC"], ["Nissan", "Skyline"], ["Ford", "Mustang"], ["BMW", "Bavarian"], ["Mercedes-Benz", "Daimler"], ["Tesla", "Electric"], ["Hyundai", "Ioniq"], ["Zara", "Inditex"], ["H&M", "Stockholm"], ["Uniqlo", "LifeWear"], ["Levi’s", "Denim"], ["Gucci", "Florence"], ["Prada", "Milano"], ["Chanel", "Luxury"], ["Dior", "French"], ["Rolex", "Oyster"]
+        ],
+        "Foods": [
+            ["Pizza", "Dough"], ["Burger", "Patty"], ["Hotdog", "Frankfurter"], ["Fries", "Starchy"], ["Spaghetti", "Pasta"], ["Lasagna", "Layers"], ["Sushi", "Nigiri"], ["Ramen", "Noodles"], ["Tempura", "Battered"], ["Fried Chicken", "Poultry"], ["Steak", "Sirloin"], ["Bacon", "Rasher"], ["Sausage", "Casing"], ["Sandwich", "Earl"], ["Salad", "Greens"], ["Soup", "Broth"], ["Rice", "Grain"], ["Bread", "Yeast"], ["Pancake", "Griddle"], ["Waffle", "Batter"], ["Donut", "Glazed"], ["Cake", "Sponge"], ["Ice Cream", "Dairy"], ["Chocolate", "Cacao"], ["Candy", "Sugar"], ["Cookies", "Biscuits"], ["Brownies", "Cocoa"], ["Pie", "Pastry"], ["Apple", "Orchard"], ["Banana", "Potassium"], ["Mango", "Tropical"], ["Orange", "Citrus"], ["Pineapple", "Bromelain"], ["Grapes", "Vineyard"], ["Watermelon", "Rind"], ["Carrot", "Root"], ["Potato", "Tuber"], ["Tomato", "Lycopene"], ["Onion", "Bulb"], ["Garlic", "Allium"], ["Corn", "Maize"], ["Broccoli", "Cruciferous"], ["Egg", "Protein"], ["Cheese", "Curd"], ["Milk", "Calcium"], ["Yogurt", "Probiotic"], ["Butter", "Churned"], ["Peanut Butter", "Protein"], ["Honey", "Nectar"], ["Jam", "Preserve"]
+        ],
+        "Objects": [
+            ["Chair", "Seating"], ["Table", "Surface"], ["Bed", "Mattress"], ["Sofa", "Couch"], ["Cabinet", "Storage"], ["Desk", "Workstation"], ["Lamp", "Illumination"], ["Mirror", "Reflection"], ["Clock", "Chronograph"], ["Fan", "Ventilation"], ["Aircon", "Coolant"], ["Refrigerator", "Compressor"], ["Microwave", "Radiation"], ["Oven", "Convection"], ["Stove", "Burner"], ["Toaster", "Heating"], ["Blender", "Pulverize"], ["Phone", "Cellular"], ["Laptop", "Portable"], ["Tablet", "Touchscreen"], ["Keyboard", "Peripheral"], ["Mouse", "Cursor"], ["Monitor", "Display"], ["Printer", "Peripheral"], ["Pen", "Ink"], ["Pencil", "Graphite"], ["Notebook", "Journal"], ["Paper", "Pulp"], ["Book", "Literature"], ["Folder", "Organizer"], ["Envelope", "Stationery"], ["Bag", "Carrier"], ["Wallet", "Currency"], ["Keys", "Security"], ["Umbrella", "Canopy"], ["Bottle", "Vessel"], ["Glass", "Vessel"], ["Plate", "Ceramic"], ["Spoon", "Utensil"], ["Fork", "Pronged"], ["Knife", "Blade"], ["TV", "Broadcast"], ["Remote", "Control"], ["Speaker", "Acoustics"], ["Headphones", "Audio"], ["Camera", "Optics"], ["Car", "Automobile"], ["Bicycle", "Cyclist"], ["Motorcycle", "Engine"], ["Helmet", "Protective"], ["Shoes", "Footwear"], ["Slippers", "Indoors"], ["Jacket", "Outerwear"], ["Hat", "Headwear"], ["Soap", "Cleansing"], ["Shampoo", "Lather"], ["Toothbrush", "Hygiene"], ["Toothpaste", "Fluoride"], ["Towel", "Absorbent"], ["Flashlight", "Lumen"], ["Charger", "Voltage"], ["Powerbank", "Battery"], ["Extension Cord", "Current"]
+        ],
+        "Cartoon Titles": [
+            ["SpongeBob SquarePants", "Bikini"], ["Tom and Jerry", "Rivalry"], ["Scooby-Doo", "Mystery"], ["Dora the Explorer", "Bilingual"], ["Ben 10", "Alien"], ["Adventure Time", "Ooo"], ["The Powerpuff Girls", "Chemical"], ["Teen Titans", "Sidekicks"], ["Gravity Falls", "Anomalies"], ["Phineas and Ferb", "Summer"], ["The Simpsons", "D'oh"], ["Family Guy", "Quahog"], ["Rick and Morty", "Multiverse"], ["Looney Tunes", "Anvil"], ["Avatar: The Last Airbender", "Bending"]
+        ],
+        "Cartoon Characters": [
+            ["SpongeBob", "Absorbent"], ["Patrick Star", "Invertebrate"], ["Squidward", "Clarinet"], ["Mickey Mouse", "Iconic"], ["Donald Duck", "Temper"], ["Goofy", "Clumsy"], ["Bugs Bunny", "Burrow"], ["Daffy Duck", "Despicable"], ["Scooby-Doo", "Snacks"], ["Shaggy", "Appetite"], ["Dora", "Backpack"], ["Boots", "Primate"], ["Ben Tennyson", "Omnitrix"], ["Finn", "Human"], ["Jake", "Stretchy"], ["Blossom", "Leader"], ["Bubbles", "Innocent"], ["Buttercup", "Aggressive"], ["Raven", "Azarath"], ["Robin", "Acrobat"], ["Gumball", "Blue"], ["Darwin", "Evolution"], ["Rick Sanchez", "Genius"], ["Morty Smith", "Nervous"], ["Homer Simpson", "Nuclear"]
+        ],
+        "Anime Characters": [
+            ["Naruto Uzumaki", "Nine-Tails"], ["Sasuke Uchiha", "Sharingan"], ["Sakura Haruno", "Strength"], ["Kakashi Hatake", "Copy"], ["Itachi Uchiha", "Crow"], ["Monkey D. Luffy", "Rubber"], ["Roronoa Zoro", "Santoryu"], ["Nami", "Navigation"], ["Sanji", "Culinarian"], ["Usopp", "Slingshot"], ["Ichigo Kurosaki", "Substitute"], ["Rukia Kuchiki", "Chappy"], ["Light Yagami", "Justice"], ["L", "Sugar"], ["Levi Ackerman", "Cleaning"], ["Eren Yeager", "Freedom"], ["Mikasa Ackerman", "Scarf"], ["Armin Arlert", "Ocean"], ["Goku", "Saiyan"], ["Vegeta", "Prince"], ["Gohan", "Scholar"], ["Frieza", "Tyrant"], ["Saitama", "Bald"], ["Genos", "Cyborg"], ["Tanjiro Kamado", "Breath"], ["Nezuko Kamado", "Muzzle"], ["Zenitsu Agatsuma", "Thunder"], ["Inosuke Hashibira", "Serrated"], ["Edward Elric", "Equivalent"], ["Alphonse Elric", "Hollow"], ["Killua Zoldyck", "Electricity"], ["Gon Freecss", "Fishing"], ["Hisoka", "Schwing"], ["Kurapika", "Chains"], ["Jotaro Kujo", "Yare"], ["Dio Brando", "Vampire"], ["Natsu Dragneel", "Salamander"], ["Lucy Heartfilia", "Keys"], ["Erza Scarlet", "Requip"], ["Gray Fullbuster", "Stripping"], ["Asta", "Antimagic"], ["Yuno", "Wind"], ["Rimuru Tempest", "Slime"]
+        ],
+        "Anime Titles": [
+            ["Naruto", "Shinobi"], ["One Piece", "Pirates"], ["Bleach", "Shinigami"], ["Attack on Titan", "Walls"], ["Dragon Ball", "Saiyan"], ["One Punch Man", "Hero"], ["Demon Slayer", "Tanjiro"], ["Fullmetal Alchemist", "Alchemy"], ["Hunter x Hunter", "Hunter"], ["Death Note", "Notebook"], ["My Hero Academia", "Quirk"], ["Black Clover", "Grimoire"], ["Fairy Tail", "Guild"], ["Jujutsu Kaisen", "Curse"], ["Tokyo Ghoul", "Ken"], ["Sword Art Online", "Digital"], ["Blue Lock", "Striker"], ["Chainsaw Man", "Pochita"], ["Haikyuu", "Volleyball"], ["Spy x Family", "Anya"], ["Code Geass", "Lelouch"], ["Cowboy Bebop", "Spike"], ["Steins;Gate", "Future"], ["JoJo’s Bizarre Adventure", "Stand"]
+        ],
+        "NBA Players": [
+            ["LeBron James", "Akron"], ["Stephen Curry", "Davidson"], ["Kevin Durant", "Slim"], ["Giannis Antetokounmpo", "Greece"], ["Luka Dončić", "Slovenia"], ["Nikola Jokić", "Sombor"], ["Joel Embiid", "Cameroon"], ["Jayson Tatum", "Duke"], ["Devin Booker", "Kentucky"], ["Damian Lillard", "Oakland"], ["Michael Jordan", "UNC"], ["Kobe Bryant", "Lower"], ["Shaquille O’Neal", "LSU"], ["Tim Duncan", "Wake"], ["Magic Johnson", "MSU"], ["Larry Bird", "Indiana"], ["Wilt Chamberlain", "Kansas"], ["Bill Russell", "USF"], ["Kareem Abdul-Jabbar", "UCLA"], ["Hakeem Olajuwon", "Houston"], ["Karl Malone", "Louisiana"], ["John Stockton", "Gonzaga"], ["Charles Barkley", "Auburn"], ["Scottie Pippen", "Central"], ["Allen Iverson", "Georgetown"], ["Dirk Nowitzki", "Wurzburg"], ["Kevin Garnett", "Preps"], ["Dwyane Wade", "Marquette"], ["Steve Nash", "Santa"], ["Chris Webber", "Michigan"], ["Gary Payton", "Oregon"], ["Reggie Miller", "UCLA"], ["Ray Allen", "UConn"], ["Paul Pierce", "Kansas"], ["Dennis Rodman", "Rebounding"], ["Isiah Thomas", "Indiana"], ["Patrick Ewing", "Georgetown"], ["Clyde Drexler", "Houston"], ["Elgin Baylor", "Seattle"], ["Jerry West", "WVU"], ["Oscar Robertson", "Cincinnati"], ["Moses Malone", "Petersburg"], ["David Robinson", "Navy"], ["Yao Ming", "Shanghai"], ["Tracy McGrady", "Toronto"], ["Vince Carter", "UNC"], ["Jason Kidd", "Cal"], ["Steve Kerr", "Arizona"], ["Manu Ginobili", "Argentina"], ["Tony Parker", "France"], ["Robert Horry", "Alabama"], ["Dominique Wilkins", "Georgia"], ["George Gervin", "EMU"], ["Bob Cousy", "Holy"], ["Pete Maravich", "LSU"], ["Walt Frazier", "SIU"], ["Rick Barry", "Miami"], ["Nate Archibald", "UTEP"], ["Dave Bing", "Syracuse"], ["Paul Arizin", "Villanova"], ["Lenny Wilkens", "Providence"], ["Bob Lanier", "Bonaventure"], ["Bill Walton", "UCLA"], ["Artis Gilmore", "Jackson"], ["Alex English", "South"], ["Bernard King", "Tennessee"], ["Sidney Moncrief", "Arkansas"], ["Adrian Dantley", "Notre"], ["Chris Mullin", "John's"], ["James Worthy", "UNC"], ["Kevin McHale", "Minnesota"], ["Robert Parish", "Centenary"], ["Joe Dumars", "McNeese"], ["Dennis Johnson", "Pepperdine"], ["Jack Sikma", "Illinois"]
+        ],
+        "Locations": [
+            ["Philippines", "Archipelago"], ["Japan", "Nippon"], ["South Korea", "Technological"], ["China", "Dynastic"], ["India", "Subcontinent"], ["Thailand", "Siam"], ["Vietnam", "Indochina"], ["Indonesia", "Insular"], ["Malaysia", "Sunda"], ["Singapore", "Merlion"], ["United States", "Federal"], ["Canada", "Boreal"], ["Mexico", "Aztec"], ["Brazil", "Amazonian"], ["Argentina", "Pampas"], ["Chile", "Andean"], ["Peru", "Incan"], ["Colombia", "Equatorial"], ["Venezuela", "Orinoco"], ["Cuba", "Antillean"], ["United Kingdom", "Monarchy"], ["France", "Hexagon"], ["Germany", "Continental"], ["Italy", "Peninsular"], ["Spain", "Iberian"], ["Portugal", "Lusitania"], ["Netherlands", "Lowlands"], ["Belgium", "Flemish"], ["Switzerland", "Alpine"], ["Austria", "Danube"], ["Russia", "Eurasian"], ["Ukraine", "Steppe"], ["Poland", "Slavic"], ["Sweden", "Scandinavian"], ["Norway", "Fjords"], ["Denmark", "Jutland"], ["Finland", "Nordic"], ["Iceland", "Volcanic"], ["Australia", "Oceanic"], ["New Zealand", "Kiwi"], ["Fiji", "Melanesian"], ["Papua New Guinea", "Tribal"], ["Egypt", "Nilotic"], ["South Africa", "Austral"], ["Nigeria", "Linguistic"], ["Kenya", "Savanna"], ["Morocco", "Maghreb"], ["Ghana", "Ashanti"], ["Ethiopia", "Abyssinian"], ["Saudi Arabia", "Arid"], ["UAE", "Emirates"], ["Qatar", "Peninsula"], ["Israel", "Levantine"], ["Turkey", "Anatolian"], ["Paris", "Lutetia"], ["London", "Thames"], ["New York", "Manhattan"], ["Los Angeles", "Tinseltown"], ["Tokyo", "Edo"], ["Seoul", "Han"], ["Beijing", "Imperial"], ["Bangkok", "Krung"], ["Dubai", "Khalifa"], ["Sydney", "Harbour"], ["Rome", "Tiber"], ["Madrid", "Castilian"], ["Berlin", "Brandenburg"], ["Amsterdam", "Canals"], ["Toronto", "Ontario"], ["Vancouver", "Pacific"], ["Cebu", "Visayas"], ["Davao", "Mindanao"], ["Manila", "Luzon"], ["Baguio", "Cordillera"], ["Palawan", "Mimaropa"], ["Boracay", "Aklan"], ["Siargao", "Surigao"], ["Mount Everest", "Chomolungma"], ["Sahara Desert", "Hamada"], ["Amazon Rainforest", "Biodiversity"], ["Grand Canyon", "Geological"], ["Great Wall of China", "Fortification"], ["Eiffel Tower", "Iron"], ["Statue of Liberty", "Copper"], ["Colosseum", "Flavian"], ["Disneyland", "Magic"], ["Universal Studios", "Cinematic"], ["Times Square", "Intersection"], ["Hollywood", "Vine"], ["Antarctica", "Frozen"], ["Arctic", "Polar"], ["Pacific Ocean", "Vast"], ["Atlantic Ocean", "Transatlantic"], ["Indian Ocean", "Monsoon"], ["Himalayas", "Tectonic"], ["Alps", "Glacial"], ["Andes", "Cordillera"], ["Rockies", "Divide"], ["Maldives", "Atoll"], ["Hawaii", "Volcanic"], ["Bali", "Hindu"], ["Santorini", "Caldera"], ["Las Vegas", "Nevada"], ["San Francisco", "Foggy"], ["Chicago", "Prairie"], ["Miami", "Biscayne"], ["Seattle", "Puget"], ["Hong Kong", "Victoria"], ["Macau", "Cotai"], ["Taipei", "Formosa"], ["Istanbul", "Bosphorus"], ["Athens", "Ancient"], ["Prague", "Vltava"], ["Vienna", "Baroque"], ["Doha", "Persian"], ["Riyadh", "Najd"], ["Tehran", "Alborz"], ["Johannesburg", "Gauteng"], ["Cape Town", "Atlantic"], ["Lagos", "Atlantic"], ["Nairobi", "Highland"], ["Moscow", "Kremlin"], ["Kyiv", "Dnieper"], ["Hanoi", "Tonkin"], ["Phnom Penh", "Mekong"], ["Yangon", "Irrawaddy"]
+        ]
+    };
+
+    // Game State
+    let state = {
+        totalPlayers: 5,
+        selectedCategories: ["Animals"],
+        currentCategory: "Animals",
+        secretWord: "",
+        secretHint: "",
+        imposterIndex: 0,
+        currentPlayer: 1,
+        categoryHintEnabled: false,
+        wordHintEnabled: false
+    };
+
+    // DOM Elements
+    const screens = {
+        setup: document.getElementById('screen-setup'),
+        pass: document.getElementById('screen-pass'),
+        view: document.getElementById('screen-view'),
+        discuss: document.getElementById('screen-discuss'),
+        reveal: document.getElementById('screen-reveal')
+    };
+
+    // Setup UI Init
+    const playerSlider = document.getElementById('player-slider');
+    const playerCountDisplay = document.getElementById('player-count');
+    const categoryContainer = document.getElementById('category-container');
+    const categoryHintToggle = document.getElementById('category-hint-toggle');
+    const wordHintToggle = document.getElementById('word-hint-toggle');
+
+    // Initialize Setup Screen
+    function initSetup() {
+        // Player Slider
+        playerSlider.addEventListener('input', (e) => {
+            state.totalPlayers = parseInt(e.target.value);
+            playerCountDisplay.textContent = state.totalPlayers;
+        });
+
+        // Hint Toggles
+        categoryHintToggle.addEventListener('change', (e) => {
+            state.categoryHintEnabled = e.target.checked;
+        });
+        wordHintToggle.addEventListener('change', (e) => {
+            state.wordHintEnabled = e.target.checked;
+        });
+
+        // Category Buttons
+        categoryContainer.innerHTML = '';
+        Object.keys(database).forEach((category, index) => {
+            const btn = document.createElement('button');
+            btn.className = `category-btn ${index === 0 ? 'selected' : ''}`;
+            btn.textContent = category;
+            btn.onclick = () => selectCategory(category, btn);
+            categoryContainer.appendChild(btn);
+        });
+        state.selectedCategories = [Object.keys(database)[0]];
+        state.currentCategory = Object.keys(database)[0];
+    }
+
+    function selectCategory(category, btnElement) {
+        const isSelected = state.selectedCategories.includes(category);
+        if (isSelected) {
+            if (state.selectedCategories.length === 1) return;
+            state.selectedCategories = state.selectedCategories.filter(c => c !== category);
+            btnElement.classList.remove('selected');
+        } else {
+            state.selectedCategories.push(category);
+            btnElement.classList.add('selected');
+        }
+    }
+
+    // Navigation Helper
+    function switchScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        screens[screenName].classList.add('active');
+    }
+
+    // Game Logic Functions
+    function startGame() {
+        const categoryPool = state.selectedCategories.length ? state.selectedCategories : Object.keys(hintDatabase);
+        state.currentCategory = categoryPool[Math.floor(Math.random() * categoryPool.length)];
+        const hintPairs = hintDatabase[state.currentCategory] || [];
+        const randomPair = hintPairs[Math.floor(Math.random() * hintPairs.length)];
+        state.secretWord = randomPair ? randomPair[0] : "";
+        state.secretHint = randomPair ? randomPair[1] : "";
+        state.imposterIndex = Math.floor(Math.random() * state.totalPlayers) + 1; // 1-indexed
+        state.currentPlayer = 1;
+        
+        setupPassScreen();
+        switchScreen('pass');
+    }
+
+    function setupPassScreen() {
+        document.getElementById('pass-progress').textContent = `Player ${state.currentPlayer} of ${state.totalPlayers}`;
+        document.getElementById('pass-title').textContent = `Pass to Player ${state.currentPlayer}`;
+    }
+
+    function showViewScreen() {
+        document.getElementById('view-progress').textContent = `Player ${state.currentPlayer} of ${state.totalPlayers}`;
+        const wordDisplay = document.getElementById('secret-word-display');
+        const roleTitle = document.getElementById('role-title');
+        const roleDesc = document.getElementById('role-description');
+        const hintDisplay = document.getElementById('imposter-hint-display');
+
+        hintDisplay.style.display = 'none'; // Ensure it's hidden by default
+
+        if (state.currentPlayer === state.imposterIndex) {
+            wordDisplay.textContent = "YOU ARE THE IMPOSTER";
+            wordDisplay.className = "secret-word imposter-text";
+            roleTitle.textContent = "Alert!";
+            roleDesc.textContent = "Pretend to know the word and blend in!";
+
+            if (state.categoryHintEnabled || state.wordHintEnabled) {
+                hintDisplay.style.display = 'block';
+                const hintLines = [];
+                if (state.categoryHintEnabled) {
+                    hintLines.push(`Category: <span style="color:var(--primary-color); font-weight:bold;">${state.currentCategory}</span>`);
+                }
+                if (state.wordHintEnabled && state.secretHint) {
+                    hintLines.push(`Hint: <span style="color:var(--primary-color); font-weight:bold;">${state.secretHint}</span>`);
+                }
+                hintDisplay.innerHTML = hintLines.join('<br>');
+            }
+        } else {
+            wordDisplay.textContent = state.secretWord;
+            wordDisplay.className = "secret-word";
+            roleTitle.textContent = "Your Word is:";
+            roleDesc.textContent = "Memorize your word, then tap below to hide it.";
+        }
+
+        switchScreen('view');
+    }
+
+    function nextPlayer() {
+        state.currentPlayer++;
+        if (state.currentPlayer > state.totalPlayers) {
+            switchScreen('discuss');
+        } else {
+            setupPassScreen();
+            switchScreen('pass');
+        }
+    }
+
+    function showRevealScreen() {
+        document.getElementById('reveal-imposter-name').textContent = `Player ${state.imposterIndex}`;
+        document.getElementById('reveal-word-text').innerHTML = `The secret word was: <strong style="color:var(--primary-color)">${state.secretWord}</strong>`;
+        switchScreen('reveal');
+    }
+
+    function resetToSetup() {
+        switchScreen('setup');
+    }
+
+    // Run init on load
+    initSetup();
+</script>
+</body>
+</html>
