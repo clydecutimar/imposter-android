@@ -1,5 +1,5 @@
 {
   "appId": "com.yourname.imposter",
   "appName": "Imposter",
-  "webDir": "."
+  "webDir": "www"
 }
