@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <title>Who's the Imposter?</title>
     <style>
         :root {
@@ -36,6 +39,10 @@
             overflow: hidden;
         }
 
+        body.app-loading {
+            background: #020617;
+        }
+
         #app {
             width: 100%;
             max-width: 500px;
@@ -45,6 +52,112 @@
             background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        body.app-loading #app {
+            opacity: 0;
+            transform: scale(0.98);
+            pointer-events: none;
+        }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #020617;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loading-video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.78;
+        }
+
+        .loading-scrim {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top, rgba(129, 140, 248, 0.32), transparent 45%),
+                linear-gradient(180deg, rgba(2, 6, 23, 0.2) 0%, rgba(2, 6, 23, 0.88) 100%);
+        }
+
+        .loading-content {
+            position: relative;
+            z-index: 1;
+            width: min(90vw, 360px);
+            padding: 28px;
+            border-radius: 28px;
+            background: rgba(15, 23, 42, 0.58);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.45);
+            text-align: center;
+        }
+
+        .loading-logo {
+            width: 110px;
+            height: 110px;
+            object-fit: contain;
+            margin-bottom: 18px;
+            filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.35));
+        }
+
+        .loading-kicker {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            margin-bottom: 12px;
+            background: rgba(99, 102, 241, 0.16);
+            color: #c7d2fe;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .loading-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .loading-status {
+            margin-bottom: 18px;
+            color: #cbd5e1;
+        }
+
+        .loading-skip {
+            width: 100%;
+            padding: 14px 20px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.72);
+            color: #f8fafc;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s ease, background 0.2s ease;
+        }
+
+        .loading-skip:active {
+            transform: scale(0.98);
         }
 
         .screen {
@@ -88,6 +201,25 @@
             color: var(--text-muted);
             margin-bottom: 24px;
             line-height: 1.5;
+        }
+
+        .app-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+
+        .app-logo {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            filter: drop-shadow(0 12px 28px rgba(99, 102, 241, 0.28));
+        }
+
+        #screen-setup > h1 {
+            display: none;
         }
 
         /* Setup Screen specifics */
@@ -207,11 +339,29 @@
         }
     </style>
 </head>
-<body>
+<body class="app-loading">
+
+<div id="loading-screen" class="loading-screen" role="dialog" aria-modal="true" aria-label="Loading screen">
+    <video id="loading-video" class="loading-video" autoplay muted loop playsinline preload="auto" poster="logo.png">
+        <source src="loading-screen.mp4" type="video/mp4">
+    </video>
+    <div class="loading-scrim"></div>
+    <div class="loading-content">
+        <img class="loading-logo" src="logo.png" alt="Imposter logo">
+        <div class="loading-kicker">Game Night</div>
+        <div class="loading-title">Who's the Imposter?</div>
+        <p class="loading-status" id="loading-status">Starting automatically in 5 seconds.</p>
+        <button id="loading-skip" class="loading-skip" type="button">Skip intro</button>
+    </div>
+</div>
 
 <div id="app">
     <!-- SETUP SCREEN -->
     <div id="screen-setup" class="screen active">
+        <div class="app-brand">
+            <img class="app-logo" src="logo.png" alt="Imposter logo">
+            <h1>Who's the Imposter?</h1>
+        </div>
         <h1>🕵️‍♂️ Imposter</h1>
         <p>Find the liar among you!</p>
 
@@ -358,7 +508,20 @@
         wordHintEnabled: false
     };
 
+    const SPLASH_DURATION_MS = 5000;
+    let splashTimeoutId = null;
+    let splashCountdownId = null;
+    let splashDeadline = 0;
+    let splashDismissed = false;
+
     // DOM Elements
+    const splashElements = {
+        container: document.getElementById('loading-screen'),
+        video: document.getElementById('loading-video'),
+        status: document.getElementById('loading-status'),
+        skipButton: document.getElementById('loading-skip')
+    };
+
     const screens = {
         setup: document.getElementById('screen-setup'),
         pass: document.getElementById('screen-pass'),
@@ -373,6 +536,50 @@
     const categoryContainer = document.getElementById('category-container');
     const categoryHintToggle = document.getElementById('category-hint-toggle');
     const wordHintToggle = document.getElementById('word-hint-toggle');
+
+    function updateLoadingStatus() {
+        if (!splashElements.status || splashDismissed) return;
+
+        const remainingSeconds = Math.max(0, Math.ceil((splashDeadline - Date.now()) / 1000));
+        splashElements.status.textContent = remainingSeconds > 0
+            ? `Starting automatically in ${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}.`
+            : 'Opening game...';
+    }
+
+    function dismissLoadingScreen() {
+        if (splashDismissed) return;
+
+        splashDismissed = true;
+        window.clearTimeout(splashTimeoutId);
+        window.clearInterval(splashCountdownId);
+        document.body.classList.remove('app-loading');
+        splashElements.container.classList.add('hidden');
+
+        if (splashElements.video) {
+            splashElements.video.pause();
+        }
+    }
+
+    function startLoadingScreen() {
+        if (!splashElements.container) return;
+
+        splashDeadline = Date.now() + SPLASH_DURATION_MS;
+        updateLoadingStatus();
+        splashCountdownId = window.setInterval(updateLoadingStatus, 250);
+        splashTimeoutId = window.setTimeout(dismissLoadingScreen, SPLASH_DURATION_MS);
+        splashElements.skipButton.addEventListener('click', dismissLoadingScreen, { once: true });
+
+        if (!splashElements.video) return;
+
+        const playPromise = splashElements.video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {
+                if (!splashDismissed && splashElements.status) {
+                    splashElements.status.textContent = 'Loading game...';
+                }
+            });
+        }
+    }
 
     // Initialize Setup Screen
     function initSetup() {
@@ -499,6 +706,7 @@
 
     // Run init on load
     initSetup();
+    startLoadingScreen();
 </script>
 </body>
 </html>

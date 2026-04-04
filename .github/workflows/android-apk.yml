@@ -24,11 +24,7 @@ jobs:
 
       - name: Build APK
         run: |
-          rm -rf www
-          mkdir -p www
-          cp index.html www/index.html
-          [ -f styles.css ] && cp styles.css www/styles.css || true
-          [ -f app.js ] && cp app.js www/app.js || true
+          npm run prepare:webdir
           npx cap add android
           npx cap sync android
           cd android
