@@ -57,6 +57,7 @@
 
         body.app-loading #app {
             opacity: 0;
+            visibility: hidden;
             transform: scale(0.98);
             pointer-events: none;
         }
@@ -64,13 +65,13 @@
         .loading-screen {
             position: fixed;
             inset: 0;
-            z-index: 1000;
+            z-index: 9999;
             display: flex;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
             background: #020617;
             transition: opacity 0.35s ease, visibility 0.35s ease;
+            cursor: default;
+            touch-action: manipulation;
         }
 
         .loading-screen.hidden {
@@ -85,79 +86,91 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.78;
+            opacity: 0.98;
+            pointer-events: none;
+            background: #020617;
         }
 
         .loading-scrim {
             position: absolute;
             inset: 0;
             background:
-                radial-gradient(circle at top, rgba(129, 140, 248, 0.32), transparent 45%),
-                linear-gradient(180deg, rgba(2, 6, 23, 0.2) 0%, rgba(2, 6, 23, 0.88) 100%);
+                linear-gradient(180deg, rgba(2, 6, 23, 0.16) 0%, rgba(2, 6, 23, 0.34) 55%, rgba(2, 6, 23, 0.76) 100%);
         }
 
-        .loading-content {
+        .loading-ui {
             position: relative;
             z-index: 1;
-            width: min(90vw, 360px);
-            padding: 28px;
-            border-radius: 28px;
-            background: rgba(15, 23, 42, 0.58);
-            backdrop-filter: blur(14px);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.45);
-            text-align: center;
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            justify-content: flex-end;
+            width: 100%;
+            min-height: 100%;
+            padding:
+                max(18px, env(safe-area-inset-top))
+                max(18px, env(safe-area-inset-right))
+                calc(max(18px, env(safe-area-inset-bottom)) + 18px)
+                max(18px, env(safe-area-inset-left));
         }
 
-        .loading-logo {
-            width: 110px;
-            height: 110px;
-            object-fit: contain;
-            margin-bottom: 18px;
-            filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.35));
-        }
-
-        .loading-kicker {
-            display: inline-flex;
+        .loading-footer {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 8px 14px;
-            border-radius: 999px;
-            margin-bottom: 12px;
-            background: rgba(99, 102, 241, 0.16);
-            color: #c7d2fe;
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            gap: 10px;
+            width: 100%;
         }
 
-        .loading-title {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 10px;
+        .loading-progress {
+            width: min(100%, 360px);
+            height: 4px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(148, 163, 184, 0.28);
+            box-shadow: 0 8px 24px rgba(2, 6, 23, 0.3);
+        }
+
+        .loading-progress-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            transition: width 0.25s linear;
         }
 
         .loading-status {
-            margin-bottom: 18px;
-            color: #cbd5e1;
-        }
-
-        .loading-skip {
-            width: 100%;
-            padding: 14px 20px;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.72);
-            color: #f8fafc;
-            font-size: 1rem;
+            margin: 0;
+            font-size: 0.76rem;
             font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.1s ease, background 0.2s ease;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.8);
+            text-shadow: 0 2px 12px rgba(2, 6, 23, 0.8);
         }
 
-        .loading-skip:active {
-            transform: scale(0.98);
+        .loading-tap-hint {
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.68);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            backdrop-filter: blur(12px);
+            color: #f8fafc;
+            font-size: 0.9rem;
+            font-weight: 700;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+        }
+
+        .loading-screen.can-skip {
+            cursor: pointer;
+        }
+
+        .loading-screen.can-skip .loading-tap-hint {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .screen {
@@ -341,17 +354,19 @@
 </head>
 <body class="app-loading">
 
-<div id="loading-screen" class="loading-screen" role="dialog" aria-modal="true" aria-label="Loading screen">
-    <video id="loading-video" class="loading-video" autoplay muted loop playsinline preload="auto" poster="logo.png">
+<div id="loading-screen" class="loading-screen" role="dialog" aria-modal="true" aria-label="Loading screen" tabindex="0">
+    <video id="loading-video" class="loading-video" autoplay muted playsinline preload="auto" poster="logo.png">
         <source src="loading-screen.mp4" type="video/mp4">
     </video>
     <div class="loading-scrim"></div>
-    <div class="loading-content">
-        <img class="loading-logo" src="logo.png" alt="Imposter logo">
-        <div class="loading-kicker">Game Night</div>
-        <div class="loading-title">Who's the Imposter?</div>
-        <p class="loading-status" id="loading-status">Starting automatically in 5 seconds.</p>
-        <button id="loading-skip" class="loading-skip" type="button">Skip intro</button>
+    <div class="loading-ui">
+        <div class="loading-footer">
+            <div class="loading-progress" aria-hidden="true">
+                <div id="loading-progress-fill" class="loading-progress-fill"></div>
+            </div>
+            <p class="loading-status" id="loading-status" aria-live="polite">Tap to continue unlocks in 5 seconds.</p>
+            <div id="loading-tap-hint" class="loading-tap-hint">Tap anywhere to continue</div>
+        </div>
     </div>
 </div>
 
@@ -508,18 +523,24 @@
         wordHintEnabled: false
     };
 
-    const SPLASH_DURATION_MS = 5000;
-    let splashTimeoutId = null;
+    const SPLASH_TAP_DELAY_MS = 5000;
+    const SPLASH_DEFAULT_FAILSAFE_MS = 30000;
+    const SPLASH_FAILSAFE_BUFFER_MS = 4000;
     let splashCountdownId = null;
-    let splashDeadline = 0;
+    let splashTapUnlockTimeoutId = null;
+    let splashFailsafeTimeoutId = null;
+    let splashStartedAt = 0;
     let splashDismissed = false;
+    let splashTapEnabled = false;
+    let splashVideoEnded = false;
 
     // DOM Elements
     const splashElements = {
         container: document.getElementById('loading-screen'),
         video: document.getElementById('loading-video'),
         status: document.getElementById('loading-status'),
-        skipButton: document.getElementById('loading-skip')
+        progressFill: document.getElementById('loading-progress-fill'),
+        tapHint: document.getElementById('loading-tap-hint')
     };
 
     const screens = {
@@ -540,42 +561,104 @@
     function updateLoadingStatus() {
         if (!splashElements.status || splashDismissed) return;
 
-        const remainingSeconds = Math.max(0, Math.ceil((splashDeadline - Date.now()) / 1000));
-        splashElements.status.textContent = remainingSeconds > 0
-            ? `Starting automatically in ${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}.`
-            : 'Opening game...';
+        const elapsedMs = Date.now() - splashStartedAt;
+        const remainingSeconds = Math.max(0, Math.ceil((SPLASH_TAP_DELAY_MS - elapsedMs) / 1000));
+        const progress = Math.max(0, Math.min(1, elapsedMs / SPLASH_TAP_DELAY_MS));
+
+        if (splashElements.progressFill) {
+            splashElements.progressFill.style.width = `${progress * 100}%`;
+        }
+
+        if (!splashTapEnabled) {
+            splashElements.status.textContent = `Tap to continue unlocks in ${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}.`;
+            return;
+        }
+
+        splashElements.status.textContent = splashVideoEnded
+            ? 'Opening game...'
+            : 'Tap anywhere to continue, or wait for the intro to finish.';
+    }
+
+    function clearSplashTimers() {
+        window.clearTimeout(splashTapUnlockTimeoutId);
+        window.clearTimeout(splashFailsafeTimeoutId);
+        window.clearInterval(splashCountdownId);
+    }
+
+    function enableTapToContinue() {
+        if (splashDismissed || splashTapEnabled) return;
+
+        splashTapEnabled = true;
+        splashElements.container.classList.add('can-skip');
+        updateLoadingStatus();
+    }
+
+    function handleSplashInteraction(event) {
+        if (!splashTapEnabled || splashDismissed) return;
+
+        if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+
+        event.preventDefault();
+        dismissLoadingScreen();
     }
 
     function dismissLoadingScreen() {
         if (splashDismissed) return;
 
         splashDismissed = true;
-        window.clearTimeout(splashTimeoutId);
-        window.clearInterval(splashCountdownId);
+        clearSplashTimers();
         document.body.classList.remove('app-loading');
         splashElements.container.classList.add('hidden');
 
         if (splashElements.video) {
-            splashElements.video.pause();
+            window.setTimeout(() => splashElements.video.pause(), 350);
         }
     }
 
     function startLoadingScreen() {
         if (!splashElements.container) return;
 
-        splashDeadline = Date.now() + SPLASH_DURATION_MS;
+        splashStartedAt = Date.now();
         updateLoadingStatus();
         splashCountdownId = window.setInterval(updateLoadingStatus, 250);
-        splashTimeoutId = window.setTimeout(dismissLoadingScreen, SPLASH_DURATION_MS);
-        splashElements.skipButton.addEventListener('click', dismissLoadingScreen, { once: true });
+        splashTapUnlockTimeoutId = window.setTimeout(enableTapToContinue, SPLASH_TAP_DELAY_MS);
+        splashFailsafeTimeoutId = window.setTimeout(dismissLoadingScreen, SPLASH_DEFAULT_FAILSAFE_MS);
+        splashElements.container.addEventListener('click', handleSplashInteraction);
+        splashElements.container.addEventListener('keydown', handleSplashInteraction);
 
         if (!splashElements.video) return;
+
+        splashElements.video.addEventListener('loadedmetadata', () => {
+            if (!Number.isFinite(splashElements.video.duration) || splashElements.video.duration <= 0) {
+                return;
+            }
+
+            window.clearTimeout(splashFailsafeTimeoutId);
+            splashFailsafeTimeoutId = window.setTimeout(
+                dismissLoadingScreen,
+                Math.ceil(splashElements.video.duration * 1000) + SPLASH_FAILSAFE_BUFFER_MS
+            );
+        }, { once: true });
+
+        splashElements.video.addEventListener('ended', () => {
+            splashVideoEnded = true;
+            updateLoadingStatus();
+            dismissLoadingScreen();
+        }, { once: true });
+
+        splashElements.video.addEventListener('error', () => {
+            if (!splashDismissed && splashElements.status) {
+                splashElements.status.textContent = 'Tap to continue unlocks in 5 seconds.';
+            }
+        }, { once: true });
 
         const playPromise = splashElements.video.play();
         if (playPromise && typeof playPromise.catch === 'function') {
             playPromise.catch(() => {
-                if (!splashDismissed && splashElements.status) {
-                    splashElements.status.textContent = 'Loading game...';
+                if (!splashDismissed && splashElements.status && !splashTapEnabled) {
+                    splashElements.status.textContent = 'Tap to continue unlocks in 5 seconds.';
                 }
             });
         }

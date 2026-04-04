@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "prepare:webdir": "node scripts/prepare-webdir.mjs",
-    "build:apk": "npm run prepare:webdir && npx cap add android && npx cap sync android && cd android && ./gradlew assembleDebug"
+    "prepare:android-assets": "node scripts/prepare-capacitor-assets.mjs && npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor \"#0f172a\" --iconBackgroundColorDark \"#0f172a\" --splashBackgroundColor \"#020617\" --splashBackgroundColorDark \"#020617\" --logoSplashScale 0.2",
+    "build:apk": "npm run prepare:webdir && npx cap add android && npm run prepare:android-assets && npx cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/core": "^7.0.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.0.0"
   }
 }
